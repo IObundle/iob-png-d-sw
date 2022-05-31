@@ -1,0 +1,6 @@
+#IMAGE TO BE DECODED
+INPUT_IMG ?= input.png
+#DECODED IMAGE
+OUTPUT_IMG ?= output.raw
+#DECODED IMAGE INFO
+OUTPUT_INFO ?= output_info.raw

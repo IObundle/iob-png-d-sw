@@ -1,15 +1,10 @@
+include ./config.mk
+
 defmacro:=-D
 incdir:=-I
 
-#IMAGE TO BE DECODED
-INPUT_IMG=input.png
-#DECODED IMAGE
-OUTPUT_IMG=output.raw
-#DECODED IMAGE INFO
-OUTPUT_INFO=output_info.raw
-
 #INCLUDE
-INCLUDE+=$(incdir)$(PNG_D_SW_DIR) $(incdir).
+INCLUDE+=$(incdir).
 
 DEFINE+=$(defmacro)INPUT_IMG_NAME=\"$(INPUT_IMG)\"
 DEFINE+=$(defmacro)OUTPUT_IMG_NAME=\"$(OUTPUT_IMG)\"
