@@ -1,4 +1,5 @@
-include ./config.mk
+ROOT_DIR ?=.
+include $(ROOT_DIR)/config.mk
 
 defmacro:=-D
 incdir:=-I
