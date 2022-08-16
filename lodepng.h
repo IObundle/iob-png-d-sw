@@ -85,7 +85,7 @@ Example: if(!uivector_resize(&lz77_encoded, datasize)) ERROR_BREAK(83);
 //Loads an encoded PNG image (from file) into a buffer
 size_t loadFile(unsigned char** buffer, char* filename);
 //Outputs a decoded PNG image into file "output.raw"
-void outputFile(unsigned char* image, unsigned width, unsigned height);
+void outputFile(unsigned char* raw, unsigned rawsize);
 //Outputs image ancillay data into file "output.ancil"
 void outputInfo(unsigned char* ancillary, unsigned size);
 
@@ -131,13 +131,13 @@ colortype: the desired color type for the raw output image. See explanation on P
 bitdepth: the desired bit depth for the raw output image. See explanation on PNG color types.
 Return value: LodePNG error code (0 means no error).
 */
-unsigned lodepng_decode_memory(unsigned char** out, unsigned* w, unsigned* h,
+unsigned lodepng_decode_memory(unsigned char** out, unsigned* out_size,
                                unsigned char** info_out, unsigned* info_size,
                                const unsigned char* in, size_t insize,
                                LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_decode_memory, but always decodes to 32-bit RGBA raw image*/
-unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h,
+unsigned lodepng_decode32(unsigned char** out, unsigned* out_size,
                           unsigned char** info_out, unsigned* info_size,
                           const unsigned char* in, size_t insize);
 
@@ -249,13 +249,13 @@ void lodepng_state_cleanup(LodePNGState* state);
 Same as lodepng_decode_memory, but uses a LodePNGState to allow custom settings and
 getting much more information about the PNG image and color mode.
 */
-unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
+unsigned lodepng_decode(unsigned char** out, unsigned* out_size,
                         unsigned char** info_out, unsigned* info_size,
                         LodePNGState* state, const unsigned char* in, size_t insize);
 
 void lodepng_free(void* ptr);
 
-void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
+void decodeGeneric(unsigned char** out, unsigned* out_size,
                          unsigned char** info_out, unsigned* info_size,
                          LodePNGState* state,
                          const unsigned char* in, size_t insize);
