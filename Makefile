@@ -7,6 +7,7 @@ incdir:=-I
 #INCLUDE
 INCLUDE+=$(incdir).
 
+DEFINE+=$(defmacro)CONVERT_TO_RGBA8=$(CONVERT_TO_RGBA8)
 DEFINE+=$(defmacro)INPUT_IMG_NAME=\"$(INPUT_IMG)\"
 DEFINE+=$(defmacro)OUTPUT_IMG_NAME=\"$(OUTPUT_IMG)\"
 DEFINE+=$(defmacro)OUTPUT_INFO_NAME=\"$(OUTPUT_INFO)\"
@@ -23,7 +24,7 @@ SRC+=lodepng.c decodepng-platform.c decodepng.c
 
 #RULES
 
-all: build run
+all: clean build run
 
 build: firmware.out
 

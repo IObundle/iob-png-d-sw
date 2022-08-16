@@ -66,16 +66,16 @@ void lodepng_info_cleanup(LodePNGInfo* info) {
   lodepng_color_mode_cleanup(&info->color);
 }
 
-unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
+unsigned lodepng_decode(unsigned char** out, unsigned* out_size,
                         unsigned char** info_out, unsigned* info_size,
                         LodePNGState* state,
                         const unsigned char* in, size_t insize) {
   *out = 0;
-  decodeGeneric(out, w, h, info_out, info_size, state, in, insize);
+  decodeGeneric(out, out_size, info_out, info_size, state, in, insize);
   return state->error;
 }
 
-unsigned lodepng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, 
+unsigned lodepng_decode_memory(unsigned char** out, unsigned* out_size, 
                                unsigned char** info_out, unsigned* info_size,
                                const unsigned char* in,
                                size_t insize, LodePNGColorType colortype, unsigned bitdepth) {
@@ -84,19 +84,19 @@ unsigned lodepng_decode_memory(unsigned char** out, unsigned* w, unsigned* h,
   lodepng_state_init(&state);
   state.info_raw.colortype = colortype;
   state.info_raw.bitdepth = bitdepth;
-  error = lodepng_decode(out, w, h, info_out, info_size, &state, in, insize);
+  error = lodepng_decode(out, out_size, info_out, info_size, &state, in, insize);
   lodepng_state_cleanup(&state);
   return error;
 }
 
-unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, 
+unsigned lodepng_decode32(unsigned char** out, unsigned* out_size, 
                            unsigned char** info_out, unsigned* info_size,
                            const unsigned char* in, size_t insize) {
-  return lodepng_decode_memory(out, w, h, info_out, info_size, in, insize, LCT_RGBA, 8);
+  return lodepng_decode_memory(out, out_size, info_out, info_size, in, insize, LCT_RGBA, 8);
 }
 
 void lodepng_decoder_settings_init(LodePNGDecoderSettings* settings) {
-  settings->color_convert = 1;
+  settings->color_convert = CONVERT_TO_RGBA8;
   settings->ignore_crc = 0;
   settings->ignore_critical = 0;
   settings->ignore_end = 0;
