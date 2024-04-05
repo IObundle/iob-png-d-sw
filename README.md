@@ -8,6 +8,7 @@ decoder (more information about this open source decoder can be found at the end
 
 To configure the names of the input and output files, the parameters on the [config.mk](config.mk) file can be edited or they can be passed through the
 command line. The parameters are:
+- CONVERT_TO_RGBA8 (default = 1): Sets if the software converts the raw image to RGBA with 8 bits per sample before outputting it
 - INPUT_IMG (default = input.png): Sets the input PNG image file name
 - OUTPUT_IMG (default = output.raw): Sets the output raw pixels file name
 - OUTPUT_INFO (default = output_info.raw): Sets the output info chunks file name

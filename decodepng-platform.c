@@ -37,10 +37,9 @@ size_t loadFile(unsigned char** buffer, char* filename) //designed for loading f
   return file_size;
 }
 
-void outputFile(unsigned char* image, unsigned width, unsigned height) //designed for outputing a stream to a hard disk file
+void outputFile(unsigned char* raw, unsigned rawsize) //designed for outputing a stream to a hard disk file
 {
   char filename[50];
-  unsigned size = width*height*sizeof(unsigned char)*4;
   strcpy(filename, OUTPUT_IMG_NAME);
   
   // opening the file in read mode
@@ -52,15 +51,15 @@ void outputFile(unsigned char* image, unsigned width, unsigned height) //designe
   }
 
   // write file contents
-  fwrite((char*)(&image[0]), 1, size, fp);
+  fwrite((char*)(&raw[0]), 1, rawsize, fp);
 
   // closing the file
   fclose(fp);
 
   printf("Output file name: %s\n", OUTPUT_IMG_NAME);
-  printf("Output file size: %u\n", size);
+  printf("Output file size: %u\n", rawsize);
 
-  free(image);
+  free(raw);
 }
 
 void outputInfo(unsigned char* info, unsigned size) //designed for outputing a stream to a hard disk file
@@ -596,7 +595,8 @@ unsigned lodepng_convert(unsigned char* out, const unsigned char* in,
   return 0;
 }
 
-void RGBA8converter(unsigned char** out, unsigned w, unsigned h, LodePNGState* state) {
+unsigned RGBA8converter(unsigned char** out, unsigned w, unsigned h, LodePNGState* state) {
+   unsigned outsize = 0;
 
   if(!state->decoder.color_convert || lodepng_color_mode_equal(&state->info_raw, &state->info_png.color)) {
     /*same color type, no copying or converting of data needed*/
@@ -604,11 +604,11 @@ void RGBA8converter(unsigned char** out, unsigned w, unsigned h, LodePNGState* s
     the raw image has to the end user*/
     if(!state->decoder.color_convert) {
       state->error = lodepng_color_mode_copy(&state->info_raw, &state->info_png.color);
-      if(state->error) return;
+      if(state->error) return outsize;
     }
+    outsize = lodepng_get_raw_size(w, h, &state->info_png.color);
   } else { /*color conversion needed*/
     unsigned char* data = *out;
-    size_t outsize=0;
 
     outsize = lodepng_get_raw_size(w, h, &state->info_raw);
     *out = (unsigned char*)lodepng_malloc(outsize);
@@ -618,8 +618,9 @@ void RGBA8converter(unsigned char** out, unsigned w, unsigned h, LodePNGState* s
     else state->error = lodepng_convert(*out, data, &state->info_raw,
                                         &state->info_png.color, w, h);
     lodepng_free(data);
+    printf("Converted image to RGBA8\n");
   }
-
+  return outsize;
 }
 
 /************************************************************/
@@ -1928,7 +1929,7 @@ static unsigned readChunk_tRNS(LodePNGColorMode *color,
 }
 
 /*read a PNG, the result will be in the same color type as the PNG (hence "generic")*/
-void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
+void decodeGeneric(unsigned char** out, unsigned* out_size,
                           unsigned char** info_out, unsigned* info_size,
                           LodePNGState* state,
                           const unsigned char* in, size_t insize) {
@@ -1940,13 +1941,12 @@ void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
   size_t ancillarysize = 0;
   unsigned char* scanlines = 0;
   size_t scanlines_size = 0, expected_size = 0;
-  size_t outsize = 0;
   size_t bpp = 0;
+  unsigned w = 0, h = 0;
 
   /* safe output values in case error happens */
   *out = 0;
-  *w = *h = 0;
-  state->error = lodepng_inspect(w, h, state, in, insize); /*reads header and resets other parameters in state->info_png*/
+  state->error = lodepng_inspect(&w, &h, state, in, insize); /*reads header and resets other parameters in state->info_png*/
   if(state->error) return;
   
   /*the input filesize is a safe upper bound for the sum of idat chunks size*/
@@ -2017,10 +2017,10 @@ void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
     /*predict output size, to allocate exact size for output buffer to avoid more dynamic allocation.
     If the decompressed size does not match the prediction, the image must be corrupt.*/
     bpp = lodepng_get_bpp(&state->info_png.color);
-    expected_size = lodepng_get_raw_size_idat(*w, *h, bpp);
+    expected_size = lodepng_get_raw_size_idat(w, h, bpp);
 
-    outsize = lodepng_get_raw_size(*w, *h, &state->info_png.color);
-    *out = (unsigned char*)lodepng_malloc(outsize);
+    *out_size = lodepng_get_raw_size(w, h, &state->info_png.color);
+    *out = (unsigned char*)lodepng_malloc(*out_size);
     if(!*out) state->error = 83; /*alloc fail*/
 
 
@@ -2031,14 +2031,14 @@ void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
   //Unfilter the image
   if(!state->error) {
 
-    state->error = postProcessScanlines(*out, scanlines, *w, *h, &state->info_png);
+    state->error = postProcessScanlines(*out, scanlines, w, h, &state->info_png);
 
   }
 
   //Convert image to RGBA8
   if(!state->error) {
 
-    RGBA8converter(out, *w, *h, state);
+   *out_size = RGBA8converter(out, w, h, state);
 
   }
 
