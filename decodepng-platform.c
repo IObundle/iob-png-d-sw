@@ -500,16 +500,24 @@ static void getPixelColorsRGBA8(unsigned char* LODEPNG_RESTRICT buffer, size_t n
                                 const LodePNGColorMode* mode) {
   unsigned num_channels = 4;
   size_t i;
+
   if(mode->colortype == LCT_GREY) {
     if(mode->bitdepth == 8) {
       for(i = 0; i != numpixels; ++i, buffer += num_channels) {
         buffer[0] = buffer[1] = buffer[2] = in[i];
         buffer[3] = 255;
       }
+      if (mode->key_defined) {
+        buffer -= numpixels * num_channels;
+        for (i = 0; i != numpixels; ++i, buffer += num_channels) {
+          if (buffer[0] == mode->key_r)
+            buffer[3] = 0;
+        }
+      }
     } else {
-      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+      for (i = 0; i != numpixels; ++i, buffer += num_channels) {
         buffer[0] = buffer[1] = buffer[2] = in[i * 2];
-        buffer[3] = 255;
+        buffer[3] = mode->key_defined && 256U * in[i * 2 + 0] + in[i * 2 + 1] == mode->key_r ? 0 : 255;
       }
     }
   } else if(mode->colortype == LCT_RGB) {
@@ -518,12 +526,23 @@ static void getPixelColorsRGBA8(unsigned char* LODEPNG_RESTRICT buffer, size_t n
         lodepng_memcpy(buffer, &in[i * 3], 3);
         buffer[3] = 255;
       }
+      if (mode->key_defined) {
+        buffer -= numpixels * num_channels;
+        for (i = 0; i != numpixels; ++i, buffer += num_channels) {
+          if (buffer[0] == mode->key_r && buffer[1] == mode->key_g &&
+              buffer[2] == mode->key_b)
+            buffer[3] = 0;
+        }
+      }
     } else {
       for(i = 0; i != numpixels; ++i, buffer += num_channels) {
         buffer[0] = in[i * 6 + 0];
         buffer[1] = in[i * 6 + 2];
         buffer[2] = in[i * 6 + 4];
-        buffer[3] = 255;
+        buffer[3] = mode->key_defined &&
+                    256U * in[i * 6 + 0] + in[i * 6 + 1] == mode->key_r &&
+                    256U * in[i * 6 + 2] + in[i * 6 + 3] == mode->key_g &&
+                    256U * in[i * 6 + 4] + in[i * 6 + 5] == mode->key_b ? 0 : 255;
       }
     }
   } else if(mode->colortype == LCT_PALETTE) {
@@ -1877,6 +1896,38 @@ static unsigned readChunk_PLTE(LodePNGColorMode* color, const unsigned char* dat
   return 0; /* OK */
 }
 
+static unsigned readChunk_tRNS(LodePNGColorMode *color,
+                               const unsigned char *data, size_t chunkLength) {
+  unsigned i;
+  if (color->colortype == LCT_PALETTE) {
+    /*error: more alpha values given than there are palette entries*/
+    if (chunkLength > color->palettesize)
+      return 39;
+
+    for (i = 0; i != chunkLength; ++i)
+      color->palette[4 * i + 3] = data[i];
+  } else if (color->colortype == LCT_GREY) {
+    /*error: this chunk must be 2 bytes for grayscale image*/
+    if (chunkLength != 2)
+      return 30;
+
+    color->key_defined = 1;
+    color->key_r = color->key_g = color->key_b = 256u * data[0] + data[1];
+  } else if (color->colortype == LCT_RGB) {
+    /*error: this chunk must be 6 bytes for RGB image*/
+    if (chunkLength != 6)
+      return 41;
+
+    color->key_defined = 1;
+    color->key_r = 256u * data[0] + data[1];
+    color->key_g = 256u * data[2] + data[3];
+    color->key_b = 256u * data[4] + data[5];
+  } else
+    return 42; /*error: tRNS chunk not allowed for other color models*/
+
+  return 0; /* OK */
+}
+
 /*read a PNG, the result will be in the same color type as the PNG (hence "generic")*/
 void decodeGeneric(unsigned char** out, unsigned* out_size,
                           unsigned char** info_out, unsigned* info_size,
@@ -1933,6 +1984,10 @@ void decodeGeneric(unsigned char** out, unsigned* out_size,
       /*palette chunk (PLTE)*/
       state->error = readChunk_PLTE(&state->info_png.color, data, chunkLength);
       if(state->error) break;
+    } else if (lodepng_chunk_type_equals(chunk, "tRNS")) {
+      /*palette transparency chunk (tRNS)*/
+      state->error = readChunk_tRNS(&state->info_png.color, data, chunkLength);
+      if (state->error) break;
     } else /*it's an info or unknown chunk type, so keep it*/ {
       lodepng_memcpy(info + ancillarysize + 0, &chunk[0], 1);
       lodepng_memcpy(info + ancillarysize + 1, &chunk[1], 1);

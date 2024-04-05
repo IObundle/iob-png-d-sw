@@ -191,6 +191,23 @@ typedef struct LodePNGColorMode {
   */
   unsigned char* palette; /*palette in RGBARGBA... order. Must be either 0, or when allocated must have 1024 bytes*/
   size_t palettesize; /*palette size in number of colors (amount of used bytes is 4 * palettesize)*/
+
+  /*
+    transparent color key (tRNS)
+
+    This color uses the same bit depth as the bitdepth value in this struct,
+    which can be 1-bit to 16-bit. For grayscale PNGs, r, g and b will all 3 be
+    set to the same.
+
+    When decoding, by default you can ignore this information, since LodePNG
+    sets pixels with this key to transparent already in the raw RGBA output.
+
+    The color key is only supported for color types 0 and 2.
+    */
+  unsigned key_defined; /*is a transparent color key given? 0 = false, 1 = true*/
+  unsigned key_r;  /*red/grayscale component of color key*/
+  unsigned key_g;  /*green component of color key*/
+  unsigned key_b;  /*blue component of color key*/
 } LodePNGColorMode;
 
 /*init, cleanup and copy functions to use with this struct*/
